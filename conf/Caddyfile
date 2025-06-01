@@ -1,0 +1,16 @@
+# A few examples
+# We ssl proxy 11434 which is the ollama api port
+# We also ssl proxy openweb-ui from the docker internal port of 8080 to 3000
+# Finally we respond with "Wrong Port" if you just go to the normal https port
+
+ollama.change-me.ts.net:11434 {
+	reverse_proxy ollama:11434
+}
+
+ollama.change-me.ts.net:3000 {
+	reverse_proxy open-webui:8080
+}
+
+ollama.change-me.ts.net {
+	respond "Hi, wrong port!"
+}

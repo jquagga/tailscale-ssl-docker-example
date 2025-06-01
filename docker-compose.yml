@@ -1,0 +1,68 @@
+services:
+  tailscale-ollama:
+    image: tailscale/tailscale:latest
+    container_name: ollama-tailscale
+    hostname: ollama-tailscale
+    environment:
+      - TS_AUTHKEY=tskey-auth-CREATE-A-REALKEY
+      - TS_AUTH_ONCE=true
+      - TS_ACCEPT_DNS=true
+      - TS_HOSTNAME=ollama #CHANGE THIS to whatever your BLAH.blah-blah.ts.net will be.
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_USERSPACE=false
+    volumes:
+      - ./tailscale/state:/var/lib/tailscale
+      - ./tailscale/tmp:/tmp
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - net_admin
+    restart: unless-stopped
+  caddy:
+    image: caddy:latest
+    container_name: ollama-caddy
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    volumes:
+      - $PWD/conf:/etc/caddy
+      - $PWD/site:/srv
+      - caddy_data:/data
+      - caddy_config:/config
+      - ./tailscale/tmp/tailscaled.sock:/var/run/tailscale/tailscaled.sock
+    network_mode: service:tailscale-ollama
+    depends_on:
+      - tailscale-ollama
+  ollama:
+    volumes:
+      - ollama:/root/.ollama
+    container_name: ollama
+    pull_policy: always
+    tty: true
+    restart: unless-stopped
+    image: ollama/ollama:rocm
+    devices:
+      - /dev/kfd
+      - /dev/dri
+    environment:
+      - HSA_OVERRIDE_GFX_VERSION=10.3.0
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: open-webui
+    volumes:
+      - open-webui:/app/backend/data
+    depends_on:
+      - ollama
+    environment:
+      - OLLAMA_BASE_URL=https://ollama.CHANGEME.ts.net:11434
+      - WEBUI_AUTH=False
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    restart: unless-stopped
+volumes:
+  ollama: {}
+  open-webui: {}
+  caddy_data:
+  caddy_config:
+
+networks: {}
