@@ -1,0 +1,55 @@
+services:
+  tailscale-mysql:
+    image: tailscale/tailscale:latest
+    container_name: mysql-tailscale
+    hostname: mysql-tailscale
+    environment:
+      - TS_AUTHKEY=tskey-auth-CREATE-A-REALKEY
+      - TS_AUTH_ONCE=true
+      - TS_ACCEPT_DNS=true
+      - TS_HOSTNAME=mysql #CHANGE THIS to whatever your BLAH.blah-blah.ts.net will be.
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_USERSPACE=false
+    volumes:
+      - ./tailscale/state:/var/lib/tailscale
+      - ./tailscale/tmp:/tmp
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - net_admin
+    restart: unless-stopped
+  caddy:
+    image: caddy:latest
+    container_name: mysql-caddy
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    volumes:
+      - $PWD/conf:/etc/caddy
+      - $PWD/site:/srv
+      - mysql_caddy_data:/data
+      - mysql_caddy_config:/config
+      - ./tailscale/tmp/tailscaled.sock:/var/run/tailscale/tailscaled.sock
+    network_mode: service:tailscale-mysql
+    depends_on:
+      - tailscale-mysql
+  mysql:
+    image: percona/percona-server:8.0
+    volumes:
+      - percona-data:/var/lib/mysql # Database data
+      - percona-logs:/var/log/mysql # MySQL logs
+      - percona-backups:/backups
+    environment:
+      MYSQL_ROOT_PASSWORD: 1234
+    container_name: mysql
+    pull_policy: always
+    tty: true
+    restart: unless-stopped
+volumes:
+  mysql_caddy_data:
+  mysql_caddy_config:
+  percona-data:
+  percona-logs:
+  percona-backups:
+
+networks: {}

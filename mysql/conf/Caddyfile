@@ -1,0 +1,10 @@
+# A few examples
+# Finally we respond with "Wrong Port" if you just go to the normal https port
+
+mysql.change-me.ts.net:3306 {
+	reverse_proxy mysql:3306
+}
+
+mysql.change-me.ts.net {
+	respond "Hi, wrong port!"
+}
